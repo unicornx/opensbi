@@ -29,6 +29,12 @@ static SBI_LIST_HEAD(mtn_list);
 
 static struct aclint_mtimer_data *mt_reference = NULL;
 
+static int timer_is_clint(const void *data)
+{
+	const struct timer_mtimer_quirks *quirks = data;
+	return quirks && quirks->mtime_offset;
+}
+
 static int timer_mtimer_cold_init(void *fdt, int nodeoff,
 				  const struct fdt_match *match)
 {
@@ -58,7 +64,7 @@ static int timer_mtimer_cold_init(void *fdt, int nodeoff,
 		return rc;
 	}
 
-	if (match->data) { /* SiFive CLINT */
+	if (timer_is_clint(match->data)) { /* SiFive CLINT */
 		const struct timer_mtimer_quirks *quirks = match->data;
 
 		/* Set CLINT addresses */
@@ -74,14 +80,19 @@ static int timer_mtimer_cold_init(void *fdt, int nodeoff,
 			mt->mtime_addr = mt->mtime_size = 0;
 		}
 		mt->mtimecmp_addr += quirks->mtime_offset;
-		/* Apply additional CLINT quirks */
-		mt->has_64bit_mmio = quirks->has_64bit_mmio;
 	} else { /* RISC-V ACLINT MTIMER */
 		/* Set ACLINT MTIMER addresses */
 		mt->mtime_addr = addr[0];
 		mt->mtime_size = size[0];
 		mt->mtimecmp_addr = addr[1];
 		mt->mtimecmp_size = size[1];
+	}
+
+	/* Apply additional quirks for CLINT and ACLINT */
+	if (match->data) {
+		const struct timer_mtimer_quirks *quirks = match->data;
+
+		mt->has_64bit_mmio = quirks->has_64bit_mmio;
 	}
 
 	/* Check if MTIMER device has shared MTIME address */
