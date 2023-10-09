@@ -258,8 +258,15 @@ static u64 generic_tlbr_flush_limit(void)
 
 static u32 generic_tlb_num_entries(void)
 {
+	const struct sbi_platform *plat = sbi_platform_thishart_ptr();
+	u32 hart_count = sbi_platform_hart_count(plat);
+
 	if (generic_plat && generic_plat->tlb_num_entries)
 		return generic_plat->tlb_num_entries(generic_plat_match);
+
+	/* for platform with too many harts, use hart count instead */
+	if (hart_count > SBI_PLATFORM_TLB_FIFO_NUM_ENTRIES)
+		return hart_count;
 	return SBI_PLATFORM_TLB_FIFO_NUM_ENTRIES;
 }
 
