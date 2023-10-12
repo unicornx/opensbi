@@ -891,8 +891,10 @@ int fdt_parse_aclint_node(void *fdt, int nodeoffset, bool for_timer,
 
 	rc = fdt_get_node_addr_size(fdt, nodeoffset, 0,
 				    &reg_addr, &reg_size);
-	if (rc < 0 || !reg_size)
+	if (rc < 0)
 		return SBI_ENODEV;
+	if (!reg_size)
+		reg_addr = reg_size = 0;
 	*out_addr1 = reg_addr;
 	*out_size1 = reg_size;
 
@@ -900,6 +902,8 @@ int fdt_parse_aclint_node(void *fdt, int nodeoffset, bool for_timer,
 				    &reg_addr, &reg_size);
 	if (rc < 0 || !reg_size)
 		reg_addr = reg_size = 0;
+	if (!reg_addr && *out_size1 == 0)
+		return SBI_ENODEV;
 	if (out_addr2)
 		*out_addr2 = reg_addr;
 	if (out_size2)
